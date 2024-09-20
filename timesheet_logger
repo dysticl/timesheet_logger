@@ -1,0 +1,157 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
+
+class Program
+{
+    static string logFilePath = @"C:\Users\User\Desktop\timesheet.log"; // .log file path
+    static DateTime lastEntryTime = DateTime.Now;
+    static Timer reminderTimer;
+
+    static void Main(string[] args)
+    {
+        // if Log-file not exist, then create it
+        if (!File.Exists(logFilePath))
+        {
+            File.Create(logFilePath).Dispose();
+        }
+
+        // Timer for 45 Minutes reminder
+        reminderTimer = new Timer(ReminderCallback, null, TimeSpan.FromMinutes(45), TimeSpan.FromMinutes(45));
+
+        while (true)
+        {
+            // Cyan color
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("Bitte Text eingeben oder...");
+            Console.ResetColor();
+
+            // Check, if button was pressd
+            ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: false); // intercept auf false gesetzt, damit Zeichen angezeigt werden
+
+            // Hotkeys
+            if (keyInfo.Modifiers == ConsoleModifiers.Control && keyInfo.Key == ConsoleKey.L)
+            {
+                ShowLog();
+            }
+            else if (keyInfo.Modifiers == ConsoleModifiers.Control && keyInfo.Key == ConsoleKey.K)
+            {
+                ShowLastLogEntry();
+            }
+            else if (keyInfo.Modifiers == ConsoleModifiers.Control && keyInfo.Key == ConsoleKey.J)
+            {
+                OpenLogFile();
+            }
+            else
+            {
+                // Input Monitoring
+                string inputText = keyInfo.KeyChar + Console.ReadLine();
+
+                // If user press enter -> input saved in Log
+                if (!string.IsNullOrEmpty(inputText))
+                {
+                    WriteLog(inputText);
+                    lastEntryTime = DateTime.Now; // Aktualisiere die Zeit des letzten Eintrags
+                }
+
+                // Clear Terminal
+                Console.Clear();
+            }
+        }
+    }
+
+    static void WriteLog(string text)
+    {
+        // Zeitstempel im Format "yyyy-MM-dd HH:mm:ss" holen
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+        // Zeitstempel und Text in die Log-Datei schreiben, UTF-8 verwenden
+        using (StreamWriter sw = new StreamWriter(logFilePath, true, Encoding.UTF8))
+        {
+            sw.WriteLine($"{timestamp} - {text}");
+        }
+
+        // Erfolgsnachricht anzeigen
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("\nText erfolgreich im Log eingetragen!");
+        Console.ResetColor();
+
+        // Eine Sekunde warten, bevor das Programm fortgesetzt wird
+        Thread.Sleep(1000);
+    }
+
+    static void ReminderCallback(Object o)
+    {
+        // Wenn seit dem letzten Eintrag mehr als 45 Minuten vergangen sind, eine Erinnerung ausgeben
+        if ((DateTime.Now - lastEntryTime).TotalMinutes >= 45)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("\n45 Minuten vergangen! Zeit für neuen Eintrag.");
+            Console.ResetColor();
+        }
+    }
+
+    static void ShowLog()
+    {
+        Console.Clear();
+
+        // Überprüfen, ob die Log-Datei existiert
+        if (File.Exists(logFilePath))
+        {
+            string logContent = File.ReadAllText(logFilePath);
+            Console.WriteLine("Log Inhalt:");
+            Console.WriteLine(logContent);
+        }
+        else
+        {
+            Console.WriteLine("Log Datei nicht gefunden.");
+        }
+
+        Console.WriteLine("\nPress any key to continue...");
+        Console.ReadKey(intercept: true);
+        Console.Clear();
+    }
+
+    static void ShowLastLogEntry()
+    {
+        Console.Clear();
+
+        if (File.Exists(logFilePath))
+        {
+            string[] logEntries = File.ReadAllLines(logFilePath);
+            if (logEntries.Length > 0)
+            {
+                string lastEntry = logEntries[logEntries.Length - 1];
+                Console.WriteLine("Letzter Log Eintrag:");
+                Console.WriteLine(lastEntry);
+            }
+            else
+            {
+                Console.WriteLine("Keine Log Einträge vorhanden.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Log Datei nicht gefunden.");
+        }
+
+        Console.WriteLine("\nPress any key to continue...");
+        Console.ReadKey(intercept: true);
+        Console.Clear();
+    }
+
+    static void OpenLogFile()
+    {
+        if (File.Exists(logFilePath))
+        {
+            Process.Start(new ProcessStartInfo(logFilePath) { UseShellExecute = true });
+        }
+        else
+        {
+            Console.WriteLine("Log Datei nicht gefunden.");
+        }
+    }
+}
+    
