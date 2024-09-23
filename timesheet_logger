@@ -6,32 +6,32 @@ using System.Threading;
 
 class Program
 {
-    static string logFilePath = @"C:\Users\User\Desktop\timesheet.log"; // .log file path
+    static string logFilePath = @"path to log";
     static DateTime lastEntryTime = DateTime.Now;
     static Timer reminderTimer;
 
     static void Main(string[] args)
     {
-        // if Log-file not exist, then create it
+        // Wenn die Log-Datei nicht existiert, wird sie erstellt
         if (!File.Exists(logFilePath))
         {
             File.Create(logFilePath).Dispose();
         }
 
-        // Timer for 45 Minutes reminder
+        // Timer für 45 Minuten Erinnerung
         reminderTimer = new Timer(ReminderCallback, null, TimeSpan.FromMinutes(45), TimeSpan.FromMinutes(45));
 
         while (true)
         {
-            // Cyan color
+            // Eingabeaufforderung in Cyan anzeigen
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("Bitte Text eingeben oder...");
             Console.ResetColor();
 
-            // Check, if button was pressd
+            // Überprüfung, ob eine Taste gedrückt wurde
             ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: false); // intercept auf false gesetzt, damit Zeichen angezeigt werden
 
-            // Hotkeys
+            // Handle verschiedene Tasten-Kombinationen
             if (keyInfo.Modifiers == ConsoleModifiers.Control && keyInfo.Key == ConsoleKey.L)
             {
                 ShowLog();
@@ -46,17 +46,17 @@ class Program
             }
             else
             {
-                // Input Monitoring
+                // Das erste Zeichen wurde bereits angezeigt, nun den Rest einlesen
                 string inputText = keyInfo.KeyChar + Console.ReadLine();
 
-                // If user press enter -> input saved in Log
+                // Wenn der Benutzer Text eingegeben hat, wird er geloggt
                 if (!string.IsNullOrEmpty(inputText))
                 {
                     WriteLog(inputText);
                     lastEntryTime = DateTime.Now; // Aktualisiere die Zeit des letzten Eintrags
                 }
 
-                // Clear Terminal
+                // Bildschirm leeren (entspricht `Clear-Host` in PowerShell)
                 Console.Clear();
             }
         }
@@ -67,10 +67,13 @@ class Program
         // Zeitstempel im Format "yyyy-MM-dd HH:mm:ss" holen
         string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-        // Zeitstempel und Text in die Log-Datei schreiben, UTF-8 verwenden
+        // Text umformatieren für automatischen Zeilenumbruch
+        string formattedText = FormatText(text);
+
+        // Zeitstempel und formatierten Text in die Log-Datei schreiben, UTF-8 verwenden
         using (StreamWriter sw = new StreamWriter(logFilePath, true, Encoding.UTF8))
         {
-            sw.WriteLine($"{timestamp} - {text}");
+            sw.WriteLine($"{timestamp} - {formattedText}");
         }
 
         // Erfolgsnachricht anzeigen
@@ -80,6 +83,26 @@ class Program
 
         // Eine Sekunde warten, bevor das Programm fortgesetzt wird
         Thread.Sleep(1000);
+    }
+
+    static string FormatText(string text)
+    {
+        int consoleWidth = Console.WindowWidth - 1; // Konsolenbreite abfragen
+        StringBuilder formattedText = new StringBuilder();
+        int currentLineLength = 0;
+
+        foreach (var word in text.Split(' '))
+        {
+            if (currentLineLength + word.Length + 1 > consoleWidth) // Umbruch, wenn die Zeile zu lang wird
+            {
+                formattedText.AppendLine();
+                currentLineLength = 0;
+            }
+            formattedText.Append(word + " ");
+            currentLineLength += word.Length + 1;
+        }
+
+        return formattedText.ToString();
     }
 
     static void ReminderCallback(Object o)
@@ -154,4 +177,3 @@ class Program
         }
     }
 }
-    
